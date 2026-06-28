@@ -1,4 +1,4 @@
-name: Check Submission Files
+name: Check Submission Files & Screenshots
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   check-files:
+    name: 코드 파일 확인
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -46,8 +47,26 @@ jobs:
           done
 
           if [ ${#missing[@]} -ne 0 ]; then
-            echo "❌ 제출되지 않은 문제: ${missing[*]}"
+            echo "❌ 코드 파일이 없는 문제: ${missing[*]}"
             exit 1
           else
-            echo "✅ 모든 문제 파일이 확인되었습니다!"
+            echo "✅ 모든 코드 파일이 확인되었습니다!"
+          fi
+
+  check-screenshots:
+    name: 통과 스크린샷 확인
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check screenshot count in PR body
+        run: |
+          body=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
+          count=$(echo "$body" | grep -oP '!\[.*?\]\(https?://[^\)]+\)' | wc -l)
+
+          echo "첨부된 이미지 수: $count / 10"
+
+          if [ "$count" -lt 10 ]; then
+            echo "❌ 스크린샷이 부족합니다. 10개 문제 모두 통과 스크린샷을 첨부해주세요. (현재 ${count}개)"
+            exit 1
+          else
+            echo "✅ 스크린샷 ${count}개 확인되었습니다!"
           fi
