@@ -1,0 +1,53 @@
+name: Check Submission Files
+
+on:
+  pull_request:
+    paths:
+      - 'problems/**'
+
+jobs:
+  check-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Extract Programmers ID from PR body
+        id: get_id
+        run: |
+          ID=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH" \
+                | grep -oP '(?<=`)[^`]+(?=`)' \
+                | head -n1)
+          echo "programmers_id=$ID" >> $GITHUB_OUTPUT
+
+      - name: Check required problem files exist
+        run: |
+          id="${{ steps.get_id.outputs.programmers_id }}"
+          required=(12904 120852 12906 12949 120892 12945 42885 12953 12921 132267)
+          titles=(
+            "가장 긴 팰린드롬"
+            "소인수분해"
+            "같은 숫자는 싫어"
+            "행렬의 곱셈"
+            "암호 해독"
+            "피보나치 수"
+            "구명보트"
+            "N개의 최소공배수"
+            "소수찾기"
+            "콜라 문제"
+          )
+          missing=()
+
+          for i in "${!required[@]}"; do
+            pid="${required[$i]}"
+            count=$(find "problems/$id/" -maxdepth 1 -name "${pid}.*" 2>/dev/null | wc -l)
+            if [ "$count" -eq 0 ]; then
+              missing+=("${pid}(${titles[$i]})")
+            fi
+          done
+
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "❌ 제출되지 않은 문제: ${missing[*]}"
+            exit 1
+          else
+            echo "✅ 모든 문제 파일이 확인되었습니다!"
+          fi
